@@ -49,6 +49,7 @@
 #import "UIViewController+OLMethods.h"
 #import "UIView+AutoLayoutHelper.h"
 #import "UIColor+OLHexString.h"
+#import "OLKiteViewController+Private.h"
 
 @interface OLPaymentViewController (Private)
 -(void)saveAndDismissReviewController;
@@ -63,7 +64,6 @@
 - (void)orderViews;
 - (void)onButtonClicked:(UIButton *)sender;
 - (void)saveEditsToAsset:(OLAsset *)asset;
-@property (strong, nonatomic) UIView *printContainerView;
 @end
 
 @interface OLSingleImageProductReviewViewController () <OLUpsellViewControllerDelegate, OLImageEditViewControllerDelegate>
@@ -100,6 +100,9 @@
 
 -(void)viewDidLoad{
     [super viewDidLoad];
+    
+    self.view.backgroundColor = [UIColor colorWithHexString:@"E7EBEF"];
+    self.printContainerView.backgroundColor = [UIColor clearColor];
     
     self.delegate = self;
     self.view.clipsToBounds = YES;
@@ -330,7 +333,7 @@
         shouldShowOffer &= [OLProduct productWithTemplateId:offer.offerTemplate] != nil;
     }
     if (shouldShowOffer){
-        OLUpsellViewController *c = [self.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
+        OLUpsellViewController *c = [[OLUserSession currentSession].kiteVc.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
         c.providesPresentationContextTransitionStyle = true;
         c.definesPresentationContext = true;
         c.modalPresentationStyle = UIModalPresentationOverCurrentContext;
@@ -407,11 +410,11 @@
     [super onButtonClicked:sender];
 }
 
-- (void)scrollCropViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
+- (void)imageEditViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
     [[OLUserSession currentSession].userSelectedPhotos addObject:asset];
 }
 
-- (void)scrollCropViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
+- (void)imageEditViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
     //Do nothing
 }
 
@@ -477,7 +480,7 @@
         else{
             [self saveJobWithCompletionHandler:^{
                 OLProduct *offerProduct = [OLProduct productWithTemplateId:vc.offer.offerTemplate];
-                UIViewController *nextVc = [self.storyboard instantiateViewControllerWithIdentifier:[OLKiteUtils reviewViewControllerIdentifierForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]]];
+                UIViewController *nextVc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]];
                 [nextVc safePerformSelector:@selector(setKiteDelegate:) withObject:self.delegate];
                 [nextVc safePerformSelector:@selector(setProduct:) withObject:offerProduct];
                 NSMutableArray *stack = [self.navigationController.viewControllers mutableCopy];

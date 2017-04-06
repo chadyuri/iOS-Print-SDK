@@ -47,6 +47,10 @@
 #import "OLProductTypeSelectionViewController.h"
 #import "OLUserSession.h"
 #import "UIImage+OLUtils.h"
+#import "OLCaseViewController.h"
+#import "OLSingleImagePosterViewController.h"
+#import "OL3DProductViewController.h"
+#import "OLApparelViewController.h"
 
 static CGFloat fadeTime = 0.3;
 
@@ -269,7 +273,48 @@ static CGFloat fadeTime = 0.3;
     [OLUserSession currentSession].kiteVc = self;
 }
 
--(IBAction) dismiss{
+- (UIViewController *)reviewViewControllerForProduct:(OLProduct *)product photoSelectionScreen:(BOOL)photoSelectionScreen{
+    OLTemplateUI templateUI = product.productTemplate.templateUI;
+    if (templateUI == OLTemplateUICase){
+        return [[OLCaseViewController alloc] init];
+    }
+    else if (templateUI == OLTemplateUIApparel){
+        return [[OLApparelViewController alloc] init];
+    }
+    else if (templateUI == OLTemplateUIPoster && product.productTemplate.gridCountX == 1 && product.productTemplate.gridCountY == 1){
+        return [[OLSingleImagePosterViewController alloc] init];
+    }
+    else if (templateUI == OLTemplateUIMug){
+        return [[OL3DProductViewController alloc] init];
+    }
+    
+    return [self.storyboard instantiateViewControllerWithIdentifier:[self reviewViewControllerIdentifierForProduct:product photoSelectionScreen:photoSelectionScreen]];
+    
+}
+
+- (NSString *)reviewViewControllerIdentifierForProduct:(OLProduct *)product photoSelectionScreen:(BOOL)photoSelectionScreen{
+    OLTemplateUI templateUI = product.productTemplate.templateUI;
+    if (templateUI == OLTemplateUIPhotobook){
+        return @"OLEditPhotobookViewController";
+    }
+    else if (templateUI == OLTemplateUINonCustomizable){
+        return @"OLPaymentViewController";
+    }
+    else if (photoSelectionScreen){
+        return @"OLImagePickerViewController";
+    }
+    else if (templateUI == OLTemplateUIPoster){
+        return @"OLPosterViewController";
+    }
+    else if (templateUI == OLTemplateUIFrame || templateUI == OLTemplateUICalendar){
+        return @"FrameOrderReviewViewController";
+    }
+    else{
+        return @"OrderReviewViewController";
+    }
+}
+
+-(void) dismiss{
 #ifndef OL_NO_ANALYTICS
     [OLAnalytics trackKiteDismissed];
 #endif
@@ -315,7 +360,7 @@ static CGFloat fadeTime = 0.3;
                 identifier = @"OLProductOverviewViewController";
             }
             else if (!containsPDF && [[OLKiteABTesting sharedInstance].launchWithPrintOrderVariant hasPrefix:@"Review-"] && [product isValidProductForUI]){
-                identifier = [OLKiteUtils reviewViewControllerIdentifierForProduct:product photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:welf]];
+                identifier = [[OLUserSession currentSession].kiteVc reviewViewControllerIdentifierForProduct:product photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:welf]];
             }
             else{
                 [OLKiteUtils checkoutViewControllerForPrintOrder:[OLUserSession currentSession].printOrder handler:^(id vc){
@@ -512,7 +557,7 @@ static CGFloat fadeTime = 0.3;
         return @"OLTypeSelectionViewController";
     }
     else if ([OLKiteABTesting sharedInstance].disableProductCategories && [OLKiteABTesting sharedInstance].skipProductOverview){
-        return [OLKiteUtils reviewViewControllerIdentifierForProduct:group.products.firstObject photoSelectionScreen:YES];
+        return [[OLUserSession currentSession].kiteVc reviewViewControllerIdentifierForProduct:group.products.firstObject photoSelectionScreen:YES];
     }
     else{
         return @"OLProductOverviewViewController";

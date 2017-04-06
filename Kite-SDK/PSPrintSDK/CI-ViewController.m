@@ -245,7 +245,7 @@ static NSString *const kApplePayBusinessName = @"Kite.ly"; //Replace with your b
         }];
 
     }]];
-    [ac addAction:[UIAlertAction actionWithTitle:@"Clear Cache" style:UIAlertActionStyleDefault handler:^(id action){
+    [ac addAction:[UIAlertAction actionWithTitle:@"Clear Web Image Cache" style:UIAlertActionStyleDefault handler:^(id action){
         [[NSURLCache sharedURLCache] removeAllCachedResponses];
     }]];
     [ac addAction:[UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:NULL]];
@@ -380,13 +380,6 @@ static NSString *const kApplePayBusinessName = @"Kite.ly"; //Replace with your b
     [vc addCustomPhotoProviderWithViewController:(UIViewController<OLCustomPickerController> *)customVc name:@"External" icon:[UIImage imageNamed:@"cat"] prepopulatedAssets:assets];
     
     [self presentViewController:vc animated:YES completion:NULL];
-}
-
-- (void)didCancelPrintFlow:(UIViewController *)printViewController{
-    [printViewController dismissViewControllerAnimated:YES completion:NULL];
-}
-- (void)didFinishPrintFlow:(UIViewController *)printViewController{
-    [printViewController dismissViewControllerAnimated:YES completion:NULL];
 }
 
 - (void)assetsPickerController:(id)ipvc didFinishPickingAssets:(NSMutableArray *)assets{

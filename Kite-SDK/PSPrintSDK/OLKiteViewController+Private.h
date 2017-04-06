@@ -27,19 +27,17 @@
 //  THE SOFTWARE.
 //
 
-#import <UIKit/UIKit.h>
+#import "OLKiteViewController.h"
 
-@interface UIView (AutoLayoutHelper)
-- (NSArray<NSLayoutConstraint *> *)fillSuperView;
-- (NSLayoutConstraint *)leadingFromSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)trailingToSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)bottomToSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)topFromSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)verticalSpacingToView:(UIView *)view constant:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)horizontalSpacingToView:(UIView *)view constant:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)heightConstraint:(CGFloat)constant;
-- (NSLayoutConstraint *)widthConstraint:(CGFloat)constant;
-- (void)centerInSuperview;
-- (NSLayoutConstraint *)centerYInSuperview;
-- (NSLayoutConstraint *)centerXInSuperview;
+@class OLProductGroup;
+@class OLImagePickerProvider;
+
+@interface OLKiteViewController (Private)
+
+@property (strong, nonatomic) NSMutableArray <OLImagePickerProvider *> *customImageProviders;
+@property (strong, nonatomic) NSArray *fontNames;
+
+- (UIViewController *)reviewViewControllerForProduct:(OLProduct *)product photoSelectionScreen:(BOOL)photoSelectionScreen;
+- (void)dismiss;
++ (NSString *)storyboardIdentifierForGroupSelected:(OLProductGroup *)group;
 @end

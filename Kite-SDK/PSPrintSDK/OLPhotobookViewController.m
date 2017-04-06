@@ -59,6 +59,7 @@
 #import "OLCustomPickerController.h"
 #import "OLCustomViewControllerPhotoProvider.h"
 #import "NSObject+Utils.h"
+#import "OLKiteViewController+Private.h"
 
 static const NSUInteger kTagLeft = 10;
 static const NSUInteger kTagRight = 20;
@@ -71,17 +72,9 @@ static const CGFloat kBookEdgePadding = 38;
 
 @end
 
-@interface OLKiteViewController ()
-- (void)dismiss;
-@end
-
 @interface OLPrintOrder (Private)
 - (BOOL)hasOfferIdBeenUsed:(NSUInteger)identifier;
 - (void)saveOrder;
-@end
-
-@interface OLKiteViewController ()
-@property (strong, nonatomic) NSMutableArray <OLImagePickerProvider *> *customImageProviders;
 @end
 
 @interface OLFlipTransition (Private)
@@ -671,7 +664,7 @@ static const CGFloat kBookEdgePadding = 38;
         else{
             [self saveJobWithCompletionHandler:^{
                 OLProduct *offerProduct = [OLProduct productWithTemplateId:vc.offer.offerTemplate];
-                UIViewController *nextVc = [self.storyboard instantiateViewControllerWithIdentifier:[OLKiteUtils reviewViewControllerIdentifierForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]]];
+                UIViewController *nextVc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]];
                 [nextVc safePerformSelector:@selector(setKiteDelegate:) withObject:self.delegate];
                 [nextVc safePerformSelector:@selector(setProduct:) withObject:offerProduct];
                 NSMutableArray *stack = [self.navigationController.viewControllers mutableCopy];
@@ -685,15 +678,15 @@ static const CGFloat kBookEdgePadding = 38;
 
 #pragma mark - OLImageEditViewController delegate
 
-- (void)scrollCropViewControllerDidCancel:(OLImageEditViewController *)cropper{
+- (void)imageEditViewControllerDidCancel:(OLImageEditViewController *)cropper{
     [cropper dismissViewControllerAnimated:YES completion:NULL];
 }
 
-- (void)scrollCropViewControllerDidDropChanges:(OLImageEditViewController *)cropper{
+- (void)imageEditViewControllerDidDropChanges:(OLImageEditViewController *)cropper{
     [cropper dismissViewControllerAnimated:NO completion:NULL];
 }
 
--(void)scrollCropViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
+-(void)imageEditViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
     [self.editingAsset unloadImage];
     self.editingAsset.edits = cropper.edits;
     if (self.editingAsset == self.coverPhoto){
@@ -708,7 +701,7 @@ static const CGFloat kBookEdgePadding = 38;
 #endif
 }
 
-- (void)scrollCropViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
+- (void)imageEditViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
     if (self.editingAsset == self.coverPhoto){
         self.coverPhoto = asset;
         [self loadCoverPhoto];
@@ -801,7 +794,7 @@ static const CGFloat kBookEdgePadding = 38;
         shouldShowOffer &= [OLProduct productWithTemplateId:offer.offerTemplate] != nil;
     }
     if (shouldShowOffer){
-        OLUpsellViewController *c = [self.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
+        OLUpsellViewController *c = [[OLUserSession currentSession].kiteVc.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
         c.providesPresentationContextTransitionStyle = true;
         c.definesPresentationContext = true;
         c.modalPresentationStyle = UIModalPresentationOverCurrentContext;
@@ -932,7 +925,7 @@ static const CGFloat kBookEdgePadding = 38;
         }
         self.editingAsset = self.coverPhoto;
         UIImageView *imageView = self.coverImageView;
-        OLImageEditViewController *cropVc = [[UIStoryboard storyboardWithName:@"OLKiteStoryboard" bundle:[OLKiteUtils kiteResourcesBundle]] instantiateViewControllerWithIdentifier:@"OLImageEditViewController"];
+        OLImageEditViewController *cropVc = [[OLImageEditViewController alloc] init];
         cropVc.delegate = self;
         cropVc.aspectRatio = imageView.frame.size.height / imageView.frame.size.width;
         cropVc.previewView = [imageView snapshotViewAfterScreenUpdates:YES];
@@ -1000,7 +993,7 @@ static const CGFloat kBookEdgePadding = 38;
         UIImageView *imageView = [page imageView];
         self.editingAsset = self.photobookPhotos[index];
         [self.editingAsset imageWithSize:[UIScreen mainScreen].bounds.size applyEdits:NO progress:NULL completion:^(UIImage *image, NSError *error){
-            OLImageEditViewController *cropVc = [[UIStoryboard storyboardWithName:@"OLKiteStoryboard" bundle:[OLKiteUtils kiteResourcesBundle]] instantiateViewControllerWithIdentifier:@"OLImageEditViewController"];
+            OLImageEditViewController *cropVc = [[OLImageEditViewController alloc] init];
             cropVc.delegate = self;
             cropVc.aspectRatio = imageView.frame.size.height / imageView.frame.size.width;
             

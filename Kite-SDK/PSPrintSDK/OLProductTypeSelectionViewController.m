@@ -41,8 +41,7 @@
 #import "UIImage+OLUtils.h"
 #import "UIImageView+FadeIn.h"
 #import "UIViewController+OLMethods.h"
-
-#define SYSTEM_VERSION_LESS_THAN(v)                 ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] == NSOrderedAscending)
+#import "OLKiteViewController+Private.h"
 
 @interface OLProductTypeSelectionViewController () <UICollectionViewDelegateFlowLayout, UIViewControllerPreviewingDelegate>
 
@@ -204,7 +203,7 @@
     OLProduct *product = self.products[indexPath.row];
     product.uuid = nil;
     
-    NSString *identifier;
+    UIViewController *vc;
     NSMutableArray *posters = [[NSMutableArray alloc] init];
     if (product.productTemplate.templateUI == OLTemplateUIPoster && !self.subtypeSelection){
         for (OLProduct *poster in self.allPosterProducts){
@@ -213,18 +212,17 @@
             }
         }
         if (posters.count > 1){
-            identifier = @"OLTypeSelectionViewController";
+            vc = [self.storyboard instantiateViewControllerWithIdentifier:@"OLTypeSelectionViewController"];
         }
     }
     else if ([OLKiteABTesting sharedInstance].skipProductOverview && ![OLKiteABTesting sharedInstance].launchedWithPrintOrder && product.productTemplate.templateUI != OLTemplateUINonCustomizable){
-        identifier = [OLKiteUtils reviewViewControllerIdentifierForProduct:product photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]];
+        vc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:product photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]];
     }
     
-    if (!identifier){
-        identifier = @"OLProductOverviewViewController";
+    if (!vc){
+        vc = [self.storyboard instantiateViewControllerWithIdentifier:@"OLProductOverviewViewController"];
     }
-    OLProductOverviewViewController *vc = [self.storyboard instantiateViewControllerWithIdentifier:identifier];
-    vc.delegate = self.delegate;
+    ((OLProductOverviewViewController *)vc).delegate = self.delegate;
     
     if (product.productTemplate.collectionName && product.productTemplate.collectionId){
         NSMutableArray *options = [[NSMutableArray alloc] init];

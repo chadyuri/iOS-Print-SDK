@@ -45,6 +45,7 @@
 #import "OLCustomPickerController.h"
 #import "OLCustomViewControllerPhotoProvider.h"
 #import "NSObject+Utils.h"
+#import "OLKiteViewController+Private.h"
 
 static const NSInteger kSectionCover = 0;
 static const NSInteger kSectionHelp = 1;
@@ -58,10 +59,6 @@ static const NSInteger kSectionPages = 2;
 + (NSString *) instagramRedirectURI;
 + (NSString *) instagramSecret;
 + (NSString *) instagramClientID;
-@end
-
-@interface OLKiteViewController ()
-@property (strong, nonatomic) NSMutableArray <OLImagePickerProvider *> *customImageProviders;
 @end
 
 @interface OLEditPhotobookViewController () <UICollectionViewDelegateFlowLayout, OLPhotobookViewControllerDelegate, OLImageViewDelegate, OLImageEditViewControllerDelegate,UINavigationControllerDelegate, OLImagePickerViewControllerDelegate, UIPopoverPresentationControllerDelegate>
@@ -430,7 +427,7 @@ static const NSInteger kSectionPages = 2;
         cropPhoto = self.photobookPhotos[self.longPressImageIndex];
         imageView = [self pageControllerForPageIndex:[self.product.productTemplate.productRepresentation pageIndexForImageIndex:self.longPressImageIndex]].imageView;
     }
-    OLImageEditViewController *cropVc = [[UIStoryboard storyboardWithName:@"OLKiteStoryboard" bundle:[OLKiteUtils kiteResourcesBundle]] instantiateViewControllerWithIdentifier:@"OLImageEditViewController"];
+    OLImageEditViewController *cropVc = [[OLImageEditViewController alloc] init];
     cropVc.delegate = self;
     cropVc.aspectRatio = imageView.frame.size.height / imageView.frame.size.width;
     cropVc.product = self.product;
@@ -811,7 +808,7 @@ static const NSInteger kSectionPages = 2;
 
 #pragma mark - OLImageEditViewController delegate
 
-- (void)scrollCropViewControllerDidCancel:(OLImageEditViewController *)cropper{
+- (void)imageEditViewControllerDidCancel:(OLImageEditViewController *)cropper{
     if (self.longPressImageIndex == -1){
         [self.coverPhoto unloadImage];
     }
@@ -821,7 +818,7 @@ static const NSInteger kSectionPages = 2;
     [cropper dismissViewControllerAnimated:YES completion:NULL];
 }
 
-- (void)scrollCropViewControllerDidDropChanges:(OLImageEditViewController *)cropper{
+- (void)imageEditViewControllerDidDropChanges:(OLImageEditViewController *)cropper{
     if (self.longPressImageIndex == -1){
         [self.coverPhoto unloadImage];
     }
@@ -831,7 +828,7 @@ static const NSInteger kSectionPages = 2;
     [cropper dismissViewControllerAnimated:NO completion:NULL];
 }
 
--(void)scrollCropViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
+-(void)imageEditViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
     if (self.longPressImageIndex == -1){
         [self.coverPhoto unloadImage];
         self.coverPhoto.edits = cropper.edits;
@@ -852,7 +849,7 @@ static const NSInteger kSectionPages = 2;
 #endif
 }
 
-- (void)scrollCropViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
+- (void)imageEditViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
     if (self.longPressImageIndex == -1){
         self.coverPhoto = asset;
         self.interactionPhotobook.coverPhoto = self.coverPhoto;

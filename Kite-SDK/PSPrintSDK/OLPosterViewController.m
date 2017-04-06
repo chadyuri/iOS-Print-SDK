@@ -45,6 +45,7 @@
 #import "OLAsset+Private.h"
 #import "UIImageView+FadeIn.h"
 #import "OLImagePickerViewController.h"
+#import "OLKiteViewController+Private.h"
 
 CGFloat posterMargin = 2;
 
@@ -62,10 +63,6 @@ CGFloat posterMargin = 2;
 @property (weak, nonatomic) OLAsset *editingAsset;
 @property (assign, nonatomic) CGSize rotationSize;
 
-@end
-
-@interface OLKiteViewController ()
-- (void)dismiss;
 @end
 
 @interface OLPackProductViewController (Private) <UICollectionViewDelegateFlowLayout>
@@ -321,7 +318,7 @@ CGFloat posterMargin = 2;
         return;
     }
     
-    OLImageEditViewController *cropVc = [[UIStoryboard storyboardWithName:@"OLKiteStoryboard" bundle:[OLKiteUtils kiteResourcesBundle]] instantiateViewControllerWithIdentifier:@"OLImageEditViewController"];
+    OLImageEditViewController *cropVc = [[OLImageEditViewController alloc] init];
     cropVc.delegate = self;
     cropVc.aspectRatio = 1;
     cropVc.product = self.product;
@@ -376,7 +373,7 @@ CGFloat posterMargin = 2;
 }
 
 - (void)previewingContext:(id<UIViewControllerPreviewing>)previewingContext commitViewController:(UIViewController *)viewControllerToCommit{
-    OLImageEditViewController *cropVc = [[UIStoryboard storyboardWithName:@"OLKiteStoryboard" bundle:[OLKiteUtils kiteResourcesBundle]] instantiateViewControllerWithIdentifier:@"OLImageEditViewController"];
+    OLImageEditViewController *cropVc = [[OLImageEditViewController alloc] init];
     cropVc.enableCircleMask = self.product.productTemplate.templateUI == OLTemplateUICircle;
     cropVc.delegate = self;
     cropVc.aspectRatio = 1;
@@ -398,11 +395,11 @@ CGFloat posterMargin = 2;
 
 #pragma mark - OLImageEditorViewControllerDelegate methods
 
-- (void)scrollCropViewControllerDidCancel:(OLImageEditViewController *)cropper{
+- (void)imageEditViewControllerDidCancel:(OLImageEditViewController *)cropper{
     [cropper dismissViewControllerAnimated:YES completion:NULL];
 }
 
--(void)scrollCropViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
+-(void)imageEditViewController:(OLImageEditViewController *)cropper didFinishCroppingImage:(UIImage *)croppedImage{
     [self.editingAsset unloadImage];
     
     for (OLAsset *asset in self.posterPhotos){
@@ -449,7 +446,7 @@ CGFloat posterMargin = 2;
 #endif
 }
 
-- (void)scrollCropViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
+- (void)imageEditViewController:(OLImageEditViewController *)cropper didReplaceAssetWithAsset:(OLAsset *)asset{
     NSUInteger index = [[OLUserSession currentSession].userSelectedPhotos indexOfObjectIdenticalTo:self.editingAsset];
     if (index != NSNotFound){
         [[OLUserSession currentSession].userSelectedPhotos replaceObjectAtIndex:index withObject:asset];
@@ -462,7 +459,7 @@ CGFloat posterMargin = 2;
 - (void)imagePicker:(OLImagePickerViewController *)vc didFinishPickingAssets:(NSMutableArray *)assets added:(NSArray<OLAsset *> *)addedAssets removed:(NSArray *)removedAssets{
     OLAsset *asset = addedAssets.lastObject;
     if (asset){
-        [self scrollCropViewController:nil didReplaceAssetWithAsset:asset];
+        [self imageEditViewController:nil didReplaceAssetWithAsset:asset];
         
         //Need to do some work to only reload the proper cells, otherwise the cropped image might zoom to the wrong cell.
         NSMutableArray *indexPaths = [[NSMutableArray alloc] init];

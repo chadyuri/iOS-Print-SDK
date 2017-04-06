@@ -48,6 +48,9 @@
 #import "OLAnalytics.h"
 #import "UIView+AutoLayoutHelper.h"
 #import "UIColor+OLHexString.h"
+#import "OLKiteViewController+Private.h"
+#import "OLImageDownloader.h"
+#import "UIImage+OLUtils.h"
 
 const NSInteger kOLEditTagImages = 10;
 const NSInteger kOLEditTagProductOptionsTab = 20;
@@ -57,11 +60,6 @@ const NSInteger kOLEditTagImageTools = 30;
 /**/const NSInteger kOLEditTagFonts = 33;
 /**/const NSInteger kOLEditTagFilters = 34;
 const NSInteger kOLEditTagCrop = 40;
-
-@interface OLKiteViewController ()
-@property (strong, nonatomic) NSArray *fontNames;
-@property (strong, nonatomic) NSMutableArray <OLImagePickerProvider *> *customImageProviders;
-@end
 
 @interface OLProductOverviewViewController ()
 - (void)setupProductRepresentation;
@@ -89,15 +87,14 @@ const NSInteger kOLEditTagCrop = 40;
 @property (strong, nonatomic) OLPhotoTextField *activeTextField;
 @property (assign, nonatomic) CGFloat originalDrawerHeight;
 
-@property (strong, nonatomic) IBOutletCollection(UIView) NSArray *allViews;
+@property (strong, nonatomic) NSMutableArray *allViews;
 @property (strong, nonatomic) NSMutableArray *cropFrameGuideViews;
 
 @property (weak, nonatomic) IBOutlet NSLayoutConstraint *cropViewTopCon;
 @property (weak, nonatomic) IBOutlet NSLayoutConstraint *cropViewLeftCon;
 @property (weak, nonatomic) IBOutlet NSLayoutConstraint *cropViewBottomCon;
 @property (weak, nonatomic) IBOutlet NSLayoutConstraint *cropViewRightCon;
-@property (weak, nonatomic) IBOutlet UIView *printContainerView;
-@property (weak, nonatomic) IBOutlet UINavigationBar *navigationBar;
+@property (strong, nonatomic) UINavigationBar *navigationBar;
 @property (weak, nonatomic) UIView *gestureView;
 
 @property (weak, nonatomic) OLProductTemplateOption *selectedOption;
@@ -113,6 +110,13 @@ const NSInteger kOLEditTagCrop = 40;
 @end
 
 @implementation OLImageEditViewController
+
+-(NSMutableArray *) allViews{
+    if (!_allViews){
+        _allViews = [[NSMutableArray alloc] init];
+    }
+    return _allViews;
+}
 
 - (OLProductTemplateOptionChoice *)selectedChoice{
     if (!_selectedChoice && self.selectedOption && ![self.selectedOption.code isEqualToString:@"garment_size"]){
@@ -242,14 +246,26 @@ const NSInteger kOLEditTagCrop = 40;
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    [self setupContainerView];
     [self setupEditingToolsView];
     
-    if (self.navigationController){
-        [self.navigationBar removeFromSuperview];
+    if (!self.navigationController){
+        self.navigationBar = [[UINavigationBar alloc] init];
+        self.customNavigationItem = [[UINavigationItem alloc] init];
+        self.navigationBar.items = @[self.customNavigationItem];
+        [self.view addSubview:self.navigationBar];
+        
+        [self.navigationBar leadingFromSuperview:0 relation:NSLayoutRelationEqual];
+        [self.navigationBar trailingToSuperview:0 relation:NSLayoutRelationEqual];
+        [self.navigationBar heightConstraint:64];
+        [self.navigationBar verticalSpacingToView:self.printContainerView constant:10 relation:NSLayoutRelationGreaterThanOrEqual];
+        [self.view addConstraint:[NSLayoutConstraint constraintWithItem:self.navigationBar attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationEqual toItem:self.topLayoutGuide attribute:NSLayoutAttributeTop multiplier:1 constant:0]];
+        
+        self.customNavigationItem.title = NSLocalizedStringFromTableInBundle(@"Edit", @"KitePrintSDK", [OLKiteUtils kiteLocalizationBundle], @"Edit image");
+        self.customNavigationItem.leftBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:NSLocalizedStringFromTableInBundle(@"Cancel", @"KitePrintSDK", [OLKiteUtils kiteLocalizationBundle], @"") style:UIBarButtonItemStylePlain target:self action:@selector(onBarButtonCancelTapped:)];
+        [self.customNavigationItem.leftBarButtonItem setTintColor:[UIColor blackColor]];
+        [self.allViews addObject:self.navigationBar];
     }
-    
-    self.customNavigationItem.title = NSLocalizedStringFromTableInBundle(@"Edit", @"KitePrintSDK", [OLKiteUtils kiteLocalizationBundle], @"Edit image");
-    [self.customNavigationItem.leftBarButtonItem setTitle:NSLocalizedStringFromTableInBundle(@"Cancel", @"KitePrintSDK", [OLKiteUtils kiteLocalizationBundle], @"")];
     
     self.availableColors = @[[UIColor blackColor], [UIColor whiteColor], [UIColor darkGrayColor], [UIColor colorWithRed:0.890 green:0.863 blue:0.761 alpha:1.000], [UIColor colorWithRed:0.765 green:0.678 blue:0.588 alpha:1.000], [UIColor colorWithRed:0.624 green:0.620 blue:0.612 alpha:1.000], [UIColor colorWithRed:0.976 green:0.910 blue:0.933 alpha:1.000], [UIColor colorWithRed:0.604 green:0.522 blue:0.741 alpha:1.000], [UIColor colorWithRed:0.996 green:0.522 blue:0.886 alpha:1.000], [UIColor colorWithRed:0.392 green:0.271 blue:0.576 alpha:1.000], [UIColor colorWithRed:0.906 green:0.573 blue:0.565 alpha:1.000], [UIColor colorWithRed:0.984 green:0.275 blue:0.404 alpha:1.000], [UIColor colorWithRed:0.918 green:0.000 blue:0.200 alpha:1.000], [UIColor colorWithRed:0.776 green:0.176 blue:0.157 alpha:1.000], [UIColor colorWithRed:0.965 green:0.831 blue:0.239 alpha:1.000], [UIColor colorWithRed:0.961 green:0.682 blue:0.118 alpha:1.000], [UIColor colorWithRed:0.945 green:0.482 blue:0.204 alpha:1.000], [UIColor colorWithRed:0.827 green:0.859 blue:0.898 alpha:1.000], [UIColor colorWithRed:0.616 green:0.710 blue:0.851 alpha:1.000], [UIColor colorWithRed:0.400 green:0.541 blue:0.784 alpha:1.000], [UIColor colorWithRed:0.400 green:0.541 blue:0.784 alpha:1.000], [UIColor colorWithRed:0.173 green:0.365 blue:0.725 alpha:1.000], [UIColor colorWithRed:0.102 green:0.247 blue:0.361 alpha:1.000], [UIColor colorWithRed:0.765 green:0.933 blue:0.898 alpha:1.000], [UIColor colorWithRed:0.506 green:0.788 blue:0.643 alpha:1.000], [UIColor colorWithRed:0.345 green:0.502 blue:0.400 alpha:1.000], [UIColor colorWithRed:0.337 green:0.427 blue:0.208 alpha:1.000]];
     
@@ -390,7 +406,72 @@ const NSInteger kOLEditTagCrop = 40;
     [gestureView addGestureRecognizer:[[UIPanGestureRecognizer alloc] initWithTarget:self.cropView action:@selector(panRecognized:)]];
     [gestureView addGestureRecognizer:[[UIPinchGestureRecognizer alloc] initWithTarget:self.cropView action:@selector(pinchRecognized:)]];
     gestureView.userInteractionEnabled = NO;
+}
 
+- (CGFloat)containerViewMargin{
+    return 20;
+}
+
+- (void)setupContainerView{
+    self.printContainerView = [[UIView alloc] init];
+    [self.view addSubview:self.printContainerView];
+    
+    [self.printContainerView trailingToSuperview:[self containerViewMargin] relation:NSLayoutRelationGreaterThanOrEqual];
+    [self.printContainerView leadingFromSuperview:[self containerViewMargin] relation:NSLayoutRelationGreaterThanOrEqual];
+    
+    [self.printContainerView.superview addConstraint:[NSLayoutConstraint constraintWithItem:self.printContainerView attribute:NSLayoutAttributeCenterX relatedBy:NSLayoutRelationEqual toItem:self.printContainerView.superview attribute:NSLayoutAttributeCenterX multiplier:1 constant:0]];
+    [self.printContainerView.superview addConstraint:[NSLayoutConstraint constraintWithItem:self.printContainerView attribute:NSLayoutAttributeTop relatedBy:NSLayoutRelationGreaterThanOrEqual toItem:self.topLayoutGuide attribute:NSLayoutAttributeBottom multiplier:1 constant:[self containerViewMargin]]];
+    
+    NSLayoutConstraint *con = [NSLayoutConstraint constraintWithItem:self.printContainerView attribute:NSLayoutAttributeLeading relatedBy:NSLayoutRelationEqual toItem:self.printContainerView.superview attribute:NSLayoutAttributeLeading multiplier:1 constant:[self containerViewMargin]];
+    con.priority = 750;
+    [self.printContainerView.superview addConstraint:con];
+    
+    con = [NSLayoutConstraint constraintWithItem:self.printContainerView attribute:NSLayoutAttributeTrailing relatedBy:NSLayoutRelationEqual toItem:self.printContainerView.superview attribute:NSLayoutAttributeTrailing multiplier:1 constant:[self containerViewMargin]];
+    con.priority = 750;
+    [self.printContainerView.superview addConstraint:con];
+    
+    con = [NSLayoutConstraint constraintWithItem:self.printContainerView attribute:NSLayoutAttributeCenterY relatedBy:NSLayoutRelationEqual toItem:self.printContainerView.superview attribute:NSLayoutAttributeCenterY multiplier:1 constant:0];
+    con.priority = 750;
+    [self.printContainerView.superview addConstraint:con];
+    
+    if ([self productBackgroundURL]){
+        self.deviceView = [[UIImageView alloc] init];
+        self.deviceView.contentMode = UIViewContentModeScaleToFill;
+        [self.printContainerView addSubview:self.deviceView];
+        [self.deviceView fillSuperView];
+    }
+    
+    UIActivityIndicatorView *activityIndicator = [[UIActivityIndicatorView alloc] init];
+    activityIndicator.color = [UIColor blackColor];
+    activityIndicator.tag = 1010;
+    activityIndicator.hidesWhenStopped = YES;
+    if (self.deviceView){
+        [self.printContainerView insertSubview:activityIndicator aboveSubview:self.deviceView];
+    }
+    else{
+        [self.printContainerView insertSubview:activityIndicator atIndex:0];
+    }
+    [activityIndicator centerInSuperview];
+    
+    self.cropView = [[OLRemoteImageCropper alloc] init];
+    [self.printContainerView addSubview:self.cropView];
+    NSArray *cons = [self.cropView fillSuperView];
+    self.cropViewTopCon = cons[0];
+    self.cropViewLeftCon = cons[1];
+    self.cropViewBottomCon = cons[2];
+    self.cropViewRightCon= cons[3];
+    
+    self.aspectRatioConstraint = [NSLayoutConstraint constraintWithItem:self.cropView attribute:NSLayoutAttributeWidth relatedBy:NSLayoutRelationEqual toItem:self.cropView attribute:NSLayoutAttributeHeight multiplier:1 constant:0];
+    [self.cropView addConstraint:self.aspectRatioConstraint];
+    
+    if ([self productHighlightsURL]){
+        self.highlightsView = [[UIImageView alloc] init];
+        self.highlightsView.contentMode = UIViewContentModeScaleToFill;
+        [self.printContainerView addSubview:self.highlightsView];
+        [self.highlightsView fillSuperView];
+    }
+    
+    [self.allViews addObject:self.printContainerView];
 }
 
 - (void)setupEditingToolsView{
@@ -405,6 +486,43 @@ const NSInteger kOLEditTagCrop = 40;
     [self.printContainerView verticalSpacingToView:self.editingTools constant:20 relation:NSLayoutRelationGreaterThanOrEqual];
     
     self.editingTools.backgroundColor = [UIColor colorWithHexString:@"E7EBEF"];
+    
+    [self.allViews addObject:self.editingTools];
+}
+
+- (void)applyProductImageLayers{
+    if (!self.deviceView.image){
+        self.deviceView.alpha = 0;
+        [[OLImageDownloader sharedInstance] downloadImageAtURL:[self productBackgroundURL] priority:1.0 progress:NULL withCompletionHandler:^(UIImage *image, NSError *error){
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.deviceView.image = [image shrinkToSize:[UIScreen mainScreen].bounds.size forScreenScale:[OLUserSession currentSession].screenScale];
+                [UIView animateWithDuration:0.1 animations:^{
+                    self.deviceView.alpha = 1;
+                } completion:^(BOOL finished){
+                    [self updateProductRepresentationForChoice:nil];
+                }];
+            });
+        }];
+    }
+    if (!self.highlightsView.image){
+        self.highlightsView.alpha = 0;
+        [[OLImageDownloader sharedInstance] downloadImageAtURL:[self productHighlightsURL] priority:0.9 progress:NULL withCompletionHandler:^(UIImage *image, NSError *error){
+            dispatch_async(dispatch_get_main_queue(), ^{
+                self.highlightsView.image = [image shrinkToSize:[UIScreen mainScreen].bounds.size forScreenScale:[OLUserSession currentSession].screenScale];
+                [UIView animateWithDuration:0.1 animations:^{
+                    self.highlightsView.alpha = 1;
+                }];
+            });
+        }];
+    }
+}
+
+- (NSURL *)productBackgroundURL{
+    return self.product.productTemplate.productBackgroundImageURL;
+}
+
+- (NSURL *)productHighlightsURL{
+    return self.product.productTemplate.productHighlightsImageURL;
 }
 
 - (void)setupProductRepresentation{
@@ -572,7 +690,7 @@ const NSInteger kOLEditTagCrop = 40;
 }
 
 - (BOOL)cropIsInImageEditingTools{
-    return self.product.productTemplate.templateUI == OLTemplateUIApparel && self.product.productTemplate.options.count > 1;
+    return NO;
 }
 
 - (UIEdgeInsets)imageInsetsOnContainer{
@@ -710,6 +828,10 @@ const NSInteger kOLEditTagCrop = 40;
         [self.view setNeedsLayout];
         [self.view layoutIfNeeded];
         self.cropView.imageView.transform = self.edits.cropTransform;
+    }
+    
+    if (!self.product.productTemplate.maskImageURL){
+        [self applyProductImageLayers];
     }
 }
 
@@ -1071,23 +1193,14 @@ const NSInteger kOLEditTagCrop = 40;
 }
 
 - (void)setupButton4{
-    if (self.product.productTemplate.templateUI == OLTemplateUIApparel && self.product.productTemplate.options.count > 1){
-        self.editingTools.button4.tag = kOLEditTagProductOptionsTab;
-        [self.editingTools.button4 addTarget:self action:@selector(onButtonClicked:) forControlEvents:UIControlEventTouchUpInside];
-        [self.product.productTemplate.options[1] iconWithCompletionHandler:^(UIImage *icon){
-            [self.editingTools.button4 setImage:icon forState:UIControlStateNormal];
-        }];
+    if ([OLUserSession currentSession].kiteVc.disableEditingTools){
+        [self.editingTools.button4 removeFromSuperview];
+        [self.cropView setGesturesEnabled:NO];
     }
     else{
-        if ([OLUserSession currentSession].kiteVc.disableEditingTools){
-            [self.editingTools.button4 removeFromSuperview];
-            [self.cropView setGesturesEnabled:NO];
-        }
-        else{
-            [self.editingTools.button4 setImage:[UIImage imageNamedInKiteBundle:@"crop"] forState:UIControlStateNormal];
-            self.editingTools.button4.tag = kOLEditTagCrop;
-            [self.editingTools.button4 addTarget:self action:@selector(onButtonClicked:) forControlEvents:UIControlEventTouchUpInside];
-        }
+        [self.editingTools.button4 setImage:[UIImage imageNamedInKiteBundle:@"crop"] forState:UIControlStateNormal];
+        self.editingTools.button4.tag = kOLEditTagCrop;
+        [self.editingTools.button4 addTarget:self action:@selector(onButtonClicked:) forControlEvents:UIControlEventTouchUpInside];
     }
 }
 
@@ -1135,11 +1248,11 @@ const NSInteger kOLEditTagCrop = 40;
 - (void)onButtonDoneTapped:(id)sender {
     [self saveEditsToAsset:nil];
     
-    if (self.asset && [self.delegate respondsToSelector:@selector(scrollCropViewController:didReplaceAssetWithAsset:)]){
-        [self.delegate scrollCropViewController:self didReplaceAssetWithAsset:self.asset];
+    if (self.asset && [self.delegate respondsToSelector:@selector(imageEditViewController:didReplaceAssetWithAsset:)]){
+        [self.delegate imageEditViewController:self didReplaceAssetWithAsset:self.asset];
     }
-    if ([self.delegate respondsToSelector:@selector(scrollCropViewController:didFinishCroppingImage:)]){
-        [self.delegate scrollCropViewController:self didFinishCroppingImage:[self.cropView editedImage]];
+    if ([self.delegate respondsToSelector:@selector(imageEditViewController:didFinishCroppingImage:)]){
+        [self.delegate imageEditViewController:self didFinishCroppingImage:[self.cropView editedImage]];
     }
     else{
         [self dismissViewControllerAnimated:YES completion:NULL];
@@ -1147,7 +1260,7 @@ const NSInteger kOLEditTagCrop = 40;
 }
 
 - (void)onBarButtonCancelTapped:(UIBarButtonItem *)sender {
-    if (self.ctaButton.enabled && self.previewView && [self.delegate respondsToSelector:@selector(scrollCropViewControllerDidDropChanges:)]){ //discard changes
+    if (self.ctaButton.enabled && self.previewView && [self.delegate respondsToSelector:@selector(imageEditViewControllerDidDropChanges:)]){ //discard changes
         [self exitCropMode];
         self.previewSourceView.hidden = NO;
         
@@ -1169,8 +1282,8 @@ const NSInteger kOLEditTagCrop = 40;
             [UIView animateWithDuration:0.7 animations:^{
                 self.previewView.transform = CGAffineTransformRotate(CGAffineTransformMakeTranslation(0, self.view.frame.size.height * 1.2), -M_PI_4);
             }completion:^(BOOL finished){
-                if ([self.delegate respondsToSelector:@selector(scrollCropViewControllerDidDropChanges:)]){
-                    [self.delegate scrollCropViewControllerDidDropChanges:self];
+                if ([self.delegate respondsToSelector:@selector(imageEditViewControllerDidDropChanges:)]){
+                    [self.delegate imageEditViewControllerDidDropChanges:self];
                 }
                 else{
                     [self dismissViewControllerAnimated:NO completion:NULL];
@@ -1178,8 +1291,8 @@ const NSInteger kOLEditTagCrop = 40;
             }];
         }];
     }
-    else if ([self.delegate respondsToSelector:@selector(scrollCropViewControllerDidCancel:)]){
-        [self.delegate scrollCropViewControllerDidCancel:self];
+    else if ([self.delegate respondsToSelector:@selector(imageEditViewControllerDidCancel:)]){
+        [self.delegate imageEditViewControllerDidCancel:self];
     }
     else{
         [self dismissViewControllerAnimated:YES completion:NULL];
@@ -1702,7 +1815,7 @@ const NSInteger kOLEditTagCrop = 40;
 }
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout *)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath{
-    if (collectionView.tag == kOLEditTagTextColors || collectionView.tag == OLProductTemplateOptionTypeColor1 || collectionView.tag == OLProductTemplateOptionTypeColor2 || collectionView.tag == OLProductTemplateOptionTypeColor3 || (self.product.productTemplate.templateUI == OLTemplateUIApparel && collectionView.tag == 0)){
+    if (collectionView.tag == kOLEditTagTextColors || collectionView.tag == OLProductTemplateOptionTypeColor1 || collectionView.tag == OLProductTemplateOptionTypeColor2 || collectionView.tag == OLProductTemplateOptionTypeColor3){
         return CGSizeMake(self.editingTools.collectionView.frame.size.height, self.editingTools.collectionView.frame.size.height);
     }
     else if (collectionView.tag == kOLEditTagFonts){
@@ -1844,7 +1957,7 @@ const NSInteger kOLEditTagCrop = 40;
         
         [self saveEditsToAsset:self.asset];
         
-        UIViewController *vc = [self.storyboard instantiateViewControllerWithIdentifier:[OLKiteUtils reviewViewControllerIdentifierForProduct:product photoSelectionScreen:NO]];
+        UIViewController *vc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:product photoSelectionScreen:NO];
         [vc safePerformSelector:@selector(setProduct:) withObject:product];
         NSMutableArray *vcs = [self.navigationController.viewControllers mutableCopy];
         [vcs replaceObjectAtIndex:vcs.count-1 withObject:vc];
@@ -2195,7 +2308,7 @@ const NSInteger kOLEditTagCrop = 40;
 #pragma mark Image Picker
 
 - (void)showImagePicker{
-    OLImagePickerViewController *vc = [self.storyboard instantiateViewControllerWithIdentifier:@"OLImagePickerViewController"];
+    OLImagePickerViewController *vc = [[OLUserSession currentSession].kiteVc.storyboard instantiateViewControllerWithIdentifier:@"OLImagePickerViewController"];
     vc.delegate = self;
     vc.selectedAssets = [[NSMutableArray alloc] init];
     vc.maximumPhotos = 1;
@@ -2238,8 +2351,8 @@ const NSInteger kOLEditTagCrop = 40;
     self.asset = addedAssets.lastObject;
     self.edits = [self.asset.edits copy];
     if (self.asset){
-        if ([self.delegate respondsToSelector:@selector(scrollCropViewController:didReplaceAssetWithAsset:)]){
-            [self.delegate scrollCropViewController:self didReplaceAssetWithAsset:self.asset];
+        if ([self.delegate respondsToSelector:@selector(imageEditViewController:didReplaceAssetWithAsset:)]){
+            [self.delegate imageEditViewController:self didReplaceAssetWithAsset:self.asset];
         }
         
         self.ctaButton.enabled = YES;
@@ -2267,6 +2380,7 @@ const NSInteger kOLEditTagCrop = 40;
 }
 
 - (void)loadImageFromAsset{
+    self.fullImage = nil;
     self.cropView.imageView.image = nil;
     __weak OLImageEditViewController *welf = self;
     [self.asset imageWithSize:[UIScreen mainScreen].bounds.size applyEdits:NO progress:^(float progress){

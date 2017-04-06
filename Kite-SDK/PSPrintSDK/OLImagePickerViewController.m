@@ -51,11 +51,8 @@
 #import "UIImage+ImageNamedInKiteBundle.h"
 #import "UIViewController+OLMethods.h"
 #import <Photos/Photos.h>
+#import "OLKiteViewController+Private.h"
 #import "UIView+RoundRect.h"
-
-@interface OLKiteViewController ()
-@property (strong, nonatomic) NSMutableArray <OLCustomViewControllerPhotoProvider *> *customImageProviders;
-@end
 
 @interface OLKitePrintSDK ()
 + (NSString *)instagramRedirectURI;
@@ -885,7 +882,7 @@
         [OLAnalytics trackUpsellShown:shouldShowOffer];
 #endif
         if (shouldShowOffer){
-            OLUpsellViewController *c = [self.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
+            OLUpsellViewController *c = [[OLUserSession currentSession].kiteVc.storyboard instantiateViewControllerWithIdentifier:@"OLUpsellViewController"];
             c.providesPresentationContextTransitionStyle = true;
             c.definesPresentationContext = true;
             c.modalPresentationStyle = UIModalPresentationOverCurrentContext;
@@ -906,7 +903,7 @@
 }
 
 -(void)showOrderPreview{
-    UIViewController* orvc = [self.storyboard instantiateViewControllerWithIdentifier:[OLKiteUtils reviewViewControllerIdentifierForProduct:self.product photoSelectionScreen:NO]];
+    UIViewController* orvc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:self.product photoSelectionScreen:NO];
     
     [orvc safePerformSelector:@selector(setProduct:) withObject:self.product];
     [self.navigationController pushViewController:orvc animated:YES];
@@ -1012,7 +1009,7 @@
             [[(OLProductPrintJob *)job acceptedOffers] addObject:vc.offer];
             
             OLProduct *offerProduct = [OLProduct productWithTemplateId:vc.offer.offerTemplate];
-            UIViewController *nextVc = [self.storyboard instantiateViewControllerWithIdentifier:[OLKiteUtils reviewViewControllerIdentifierForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]]];
+            UIViewController *nextVc = [[OLUserSession currentSession].kiteVc reviewViewControllerForProduct:offerProduct photoSelectionScreen:[OLKiteUtils imageProvidersAvailable:self]];
             [nextVc safePerformSelector:@selector(setProduct:) withObject:offerProduct];
             NSMutableArray *stack = [self.navigationController.viewControllers mutableCopy];
             [stack removeObject:self];

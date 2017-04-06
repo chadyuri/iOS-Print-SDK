@@ -27,19 +27,8 @@
 //  THE SOFTWARE.
 //
 
-#import <UIKit/UIKit.h>
+#import "OLCaseViewController.h"
 
-@interface UIView (AutoLayoutHelper)
-- (NSArray<NSLayoutConstraint *> *)fillSuperView;
-- (NSLayoutConstraint *)leadingFromSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)trailingToSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)bottomToSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)topFromSuperview:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)verticalSpacingToView:(UIView *)view constant:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)horizontalSpacingToView:(UIView *)view constant:(CGFloat)constant relation:(NSLayoutRelation)relation;
-- (NSLayoutConstraint *)heightConstraint:(CGFloat)constant;
-- (NSLayoutConstraint *)widthConstraint:(CGFloat)constant;
-- (void)centerInSuperview;
-- (NSLayoutConstraint *)centerYInSuperview;
-- (NSLayoutConstraint *)centerXInSuperview;
+@interface OLApparelViewController : OLCaseViewController
+
 @end
